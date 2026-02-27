@@ -52,14 +52,14 @@ Identifies and reconciles customer contacts based on email and/or phone number.
 
 **1. New Customer**
 ```bash
-curl -X POST https://your-app-name.onrender.com/identify \
+curl -X POST https://identity-reconciliation-06us.onrender.com/identify \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@example.com","phoneNumber":"123456"}'
 ```
 
 **2. Link New Info to Existing Contact**
 ```bash
-curl -X POST https://your-app-name.onrender.com/identify \
+curl -X POST https://identity-reconciliation-06us.onrender.com/identify \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@example.com","phoneNumber":"789012"}'
 ```
@@ -103,6 +103,6 @@ The server runs on `http://localhost:3000` by default.
 2. Create a **Web Service** on [render.com](https://render.com)
 3. Create a **PostgreSQL** database on Render
 4. Set the `DATABASE_URL` environment variable to the PostgreSQL **Internal Database URL**
-5. Set build command: `npm install && npx prisma migrate deploy && npx prisma generate`
+5. Set build command: `npm install && npx prisma migrate deploy && npm run build`
 6. Set start command: `npm run start`
 7. Deploy!
