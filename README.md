@@ -4,10 +4,10 @@ A web service that links different customer orders made with different contact i
 
 ## 🌐 Live Endpoint
 
-**Base URL**: `https://your-app-name.onrender.com`  
+**Base URL**: `https://identity-reconciliation-06us.onrender.com`  
 **Endpoint**: `POST /identify`
 
-> Replace the above URL with your actual Render deployment URL.
+> ⚠️ Free Render instances spin down after inactivity — the first request may take ~30 seconds.
 
 ---
 
