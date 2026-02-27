@@ -12,7 +12,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Identity Reconciliation Web Service - Links customer contacts across orders",
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "dotenv": "^17.3.1",
