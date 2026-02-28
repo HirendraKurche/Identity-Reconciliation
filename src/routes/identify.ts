@@ -1,5 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../prismaClient";
+import { identifySchema } from "../schemas/identify";
 
 const router = Router();
 
@@ -9,25 +10,21 @@ const router = Router();
  * Identity Reconciliation endpoint.
  * Receives an email and/or phoneNumber and links them to an existing contact
  * cluster or creates a new one. Returns the consolidated contact "family".
+ *
+ * Input is validated with Zod; errors are forwarded to the global error handler.
+ * The merge-two-primaries scenario uses a Prisma interactive transaction for
+ * atomic data integrity.
  */
-router.post("/", async (req: Request, res: Response): Promise<void> => {
+router.post("/", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { email, phoneNumber } = req.body as {
-            email?: string;
-            phoneNumber?: string;
-        };
+        // ── ZOD VALIDATION ───────────────────────────────────────────────
+        const { email, phoneNumber } = identifySchema.parse(req.body);
 
-        // At least one piece of contact info is required.
-        if (!email && !phoneNumber) {
-            res.status(400).json({ error: "At least one of email or phoneNumber is required." });
-            return;
-        }
-
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // STEP 1: Find all existing contacts that match either the email OR
         //         the phone number. We use an OR query so we catch contacts
         //         that share *any* piece of info with the incoming request.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         const conditions: any[] = [];
         if (email) conditions.push({ email });
         if (phoneNumber) conditions.push({ phoneNumber });
@@ -40,11 +37,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             orderBy: { createdAt: "asc" },
         });
 
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // STEP 2: Resolve the "root" primary contact for every matching row.
         //         A secondary contact points to its primary via `linkedId`.
         //         We collect the unique primary IDs involved.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         const primaryIds = new Set<number>();
 
         for (const contact of matchingContacts) {
@@ -55,10 +52,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             }
         }
 
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // SCENARIO 1 — Brand-new customer (no matches at all).
         // Create a new primary contact and return immediately.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         if (primaryIds.size === 0) {
             const newPrimary = await prisma.contact.create({
                 data: {
@@ -79,11 +76,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // SCENARIO 3 — Two different primary contacts matched.
         // The older primary stays primary; the newer one (and all its
         // secondaries) become secondary under the older primary.
-        // ──────────────────────────────────────────────────────────────────────
+        //
+        // ⚡ This is wrapped in a Prisma interactive transaction so that
+        //    both updateMany calls are ATOMIC — if the server crashes
+        //    midway, the database rolls back entirely.
+        // ──────────────────────────────────────────────────────────────────
         let rootPrimaryId: number;
 
         if (primaryIds.size > 1) {
@@ -100,31 +101,34 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             // All other primaries become secondary under the oldest primary.
             const otherPrimaryIds = primaries.slice(1).map((p) => p.id);
 
-            // Demote the newer primary contacts → secondary.
-            await prisma.contact.updateMany({
-                where: { id: { in: otherPrimaryIds } },
-                data: {
-                    linkedId: rootPrimaryId,
-                    linkPrecedence: "secondary",
-                },
-            });
+            // ── ATOMIC TRANSACTION: Merge two primaries ──────────────────
+            await prisma.$transaction(async (tx) => {
+                // Demote the newer primary contacts → secondary.
+                await tx.contact.updateMany({
+                    where: { id: { in: otherPrimaryIds } },
+                    data: {
+                        linkedId: rootPrimaryId,
+                        linkPrecedence: "secondary",
+                    },
+                });
 
-            // Re-link all existing secondary contacts that pointed to the
-            // demoted primaries so they now point to the surviving primary.
-            await prisma.contact.updateMany({
-                where: { linkedId: { in: otherPrimaryIds } },
-                data: { linkedId: rootPrimaryId },
+                // Re-link all existing secondary contacts that pointed to the
+                // demoted primaries so they now point to the surviving primary.
+                await tx.contact.updateMany({
+                    where: { linkedId: { in: otherPrimaryIds } },
+                    data: { linkedId: rootPrimaryId },
+                });
             });
         } else {
             // Only one primary matched — use it as the root.
             rootPrimaryId = Array.from(primaryIds)[0];
         }
 
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // STEP 3: Now that we have a single root primary, fetch the full
         //         cluster (primary + all its secondaries) to check whether
         //         the incoming info is truly new.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         const cluster = await prisma.contact.findMany({
             where: {
                 OR: [{ id: rootPrimaryId }, { linkedId: rootPrimaryId }],
@@ -140,10 +144,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         const isEmailNew = email && !existingEmails.has(email);
         const isPhoneNew = phoneNumber && !existingPhones.has(phoneNumber);
 
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // SCENARIO 2 — Incoming request has NEW info that extends the cluster.
         // Create a secondary contact to store the new piece(s) of info.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         if (isEmailNew || isPhoneNew) {
             const newSecondary = await prisma.contact.create({
                 data: {
@@ -156,15 +160,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             cluster.push(newSecondary);
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        // SCENARIO 4 — Nothing new; info already exists in the cluster.
-        // We simply fall through and return the consolidated response below.
-        // ──────────────────────────────────────────────────────────────────────
-
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         // BUILD THE CONSOLIDATED RESPONSE
         // Primary contact's email and phone must come first in the arrays.
-        // ──────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
         const primary = cluster.find((c) => c.id === rootPrimaryId)!;
 
         const emails: string[] = [];
@@ -196,8 +195,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
             },
         });
     } catch (error) {
-        console.error("Error in /identify:", error);
-        res.status(500).json({ error: "Internal server error" });
+        // Forward ALL errors (Zod, Prisma, etc.) to the global error handler.
+        next(error);
     }
 });
 

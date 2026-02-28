@@ -4,6 +4,7 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger";
 import identifyRouter from "./routes/identify";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,9 @@ app.use(express.static(path.join(__dirname, "../public")));
 
 // Mount the /identify route.
 app.use("/identify", identifyRouter);
+
+// Global error-handling middleware (must be registered LAST).
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
