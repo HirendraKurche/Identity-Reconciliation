@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bitespeed Identity Reconciliation</title>
+    <meta name="description" content="Identity Reconciliation Web Service — Links customer contacts across orders by matching email and phone number." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwindcss.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Inter", "system-ui", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        * { font-family: "Inter", system-ui, sans-serif; }
+
+        /* Animated gradient background */
+        .hero-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #172554 70%, #0f172a 100%);
+            background-size: 300% 300%;
+            animation: gradientShift 12s ease-in-out infinite;
+        }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 8s ease-in-out infinite;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 350px; height: 350px; background: #06b6d4; bottom: -80px; right: -80px; animation-delay: -3s; }
+        .orb-3 { width: 250px; height: 250px; background: #8b5cf6; top: 50%; left: 50%; animation-delay: -5s; }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 15px) scale(0.95); }
+        }
+
+        /* Glass card */
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        /* Glow button */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .btn-glow::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, #6366f1, #06b6d4, #8b5cf6, #6366f1);
+            background-size: 400%;
+            border-radius: inherit;
+            z-index: -1;
+            animation: borderGlow 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .btn-glow:hover::before { opacity: 1; }
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 400% 50%; }
+        }
+
+        /* Input focus glow */
+        .input-glow:focus {
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3), 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Code block */
+        .code-block {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Fade in */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="hero-gradient min-h-screen text-white relative overflow-x-hidden">
+    <!-- Floating orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Main container -->
+    <div class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
+
+        <!-- Hero Section -->
+        <header class="text-center mb-12 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-6 fade-in">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                API Service Online
+            </div>
+            <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 fade-in">
+                <span class="bg-gradient-to-r from-indigo-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">
+                    Bitespeed
+                </span>
+                <br />
+                <span class="text-slate-100">Identity Reconciliation</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto fade-in">
+                A smart web service that links customer contacts across multiple orders.
+                Send an email and/or phone number, and we'll reconcile it into a unified contact identity.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-4 mt-8 fade-in">
+                <a href="/api-docs" class="btn-glow inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Swagger API Docs
+                </a>
+                <a href="#test-api" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-600 hover:border-indigo-500/50 text-slate-300 hover:text-white font-semibold transition-all hover:bg-white/5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Try the API
+                </a>
+            </div>
+        </header>
+
+        <!-- Test API Section -->
+        <section id="test-api" class="w-full max-w-2xl fade-in">
+            <div class="glass rounded-2xl p-8 shadow-2xl">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Test the API</h2>
+                        <p class="text-sm text-slate-400">Send a request to <code class="text-indigo-400 bg-indigo-400/10 px-1.5 py-0.5 rounded">POST /identify</code></p>
+                    </div>
+                </div>
+
+                <form id="identify-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="e.g. mcfly@hillvalley.edu"
+                            class="input-glow w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label for="phoneNumber" class="block text-sm font-medium text-slate-300 mb-1.5">Phone Number</label>
+                        <input
+                            type="text"
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            placeholder="e.g. 123456"
+                            class="input-glow w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        id="submit-btn"
+                        class="btn-glow w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span id="btn-text">Send Request</span>
+                        <div id="btn-spinner" class="spinner hidden"></div>
+                    </button>
+                </form>
+
+                <!-- Response area -->
+                <div id="response-area" class="hidden mt-6 fade-in">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 id="response-title" class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Response</h3>
+                        <span id="response-status" class="text-xs font-mono px-2 py-1 rounded-lg"></span>
+                    </div>
+                    <div class="code-block rounded-xl overflow-hidden">
+                        <pre class="p-5 overflow-x-auto text-sm leading-relaxed"><code id="response-body" class="text-slate-300 font-mono"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-slate-600 text-sm">
+            <p>Built with Express &amp; TypeScript &bull; <a href="/api-docs" class="text-indigo-500 hover:text-indigo-400 transition-colors">API Documentation</a></p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById("identify-form");
+        const emailInput = document.getElementById("email");
+        const phoneInput = document.getElementById("phoneNumber");
+        const submitBtn = document.getElementById("submit-btn");
+        const btnText = document.getElementById("btn-text");
+        const btnSpinner = document.getElementById("btn-spinner");
+        const responseArea = document.getElementById("response-area");
+        const responseTitle = document.getElementById("response-title");
+        const responseStatus = document.getElementById("response-status");
+        const responseBody = document.getElementById("response-body");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const email = emailInput.value.trim();
+            const phoneNumber = phoneInput.value.trim();
+
+            if (!email && !phoneNumber) {
+                showResponse(
+                    { error: "Please provide at least an email or phone number." },
+                    400,
+                    true
+                );
+                return;
+            }
+
+            // Build request body — only include non-empty fields
+            const body = {};
+            if (email) body.email = email;
+            if (phoneNumber) body.phoneNumber = phoneNumber;
+
+            // UI: loading state
+            submitBtn.disabled = true;
+            btnText.textContent = "Sending…";
+            btnSpinner.classList.remove("hidden");
+            responseArea.classList.add("hidden");
+
+            try {
+                const res = await fetch("/identify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
+
+                const data = await res.json();
+                showResponse(data, res.status, !res.ok);
+            } catch (err) {
+                showResponse(
+                    { error: `Network error: ${err.message}` },
+                    0,
+                    true
+                );
+            } finally {
+                submitBtn.disabled = false;
+                btnText.textContent = "Send Request";
+                btnSpinner.classList.add("hidden");
+            }
+        });
+
+        function showResponse(data, status, isError) {
+            responseArea.classList.remove("hidden");
+            responseArea.classList.add("fade-in");
+
+            responseTitle.textContent = isError ? "Error" : "Response";
+
+            if (status > 0) {
+                responseStatus.textContent = `HTTP ${status}`;
+                responseStatus.className = `text-xs font-mono px-2 py-1 rounded-lg ${
+                    isError
+                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                }`;
+            } else {
+                responseStatus.textContent = "FAILED";
+                responseStatus.className =
+                    "text-xs font-mono px-2 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20";
+            }
+
+            // Syntax-highlight the JSON
+            responseBody.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+        }
+
+        function syntaxHighlight(json) {
+            return json.replace(
+                /("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                (match) => {
+                    let cls = "text-amber-300"; // number
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = "text-indigo-400"; // key
+                        } else {
+                            cls = "text-emerald-400"; // string
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = "text-cyan-400"; // boolean
+                    } else if (/null/.test(match)) {
+                        cls = "text-slate-500"; // null
+                    }
+                    return `<span class="${cls}">${match}</span>`;
+                }
+            );
+        }
+    </script>
+</body>
+</html>
